@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=80"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "iam-attack-path-graph"
+version = "0.1.0"
+description = "Reads an AWS account's IAM through a read-only role and computes each principal's effective permissions, the base for finding privilege-escalation paths."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-timeout>=2.3", "ruff>=0.6", "mypy>=1.11", "pip-audit>=2.7"]
+# Live collection from an AWS account (offline snapshots need nothing extra).
+aws = ["boto3>=1.35,<2"]
+
+[project.scripts]
+iamgraph = "iam_attack_path_graph.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+iam_attack_path_graph = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["tests"]
+timeout = 120
+
+[tool.ruff]
+line-length = 100
+extend-exclude = [".tmp", ".venv"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "S", "SIM", "RUF", "N", "C4", "PT", "RET", "PIE", "PERF"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S311"]
+"src/iam_attack_path_graph/synthetic.py" = ["S311"]
+
+[tool.mypy]
+strict = true
+files = ["src", "tests"]

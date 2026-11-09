@@ -1,0 +1,183 @@
+{
+ "Metadata": {
+  "CollectedAt": "2026-11-09T00:00:00Z",
+  "Source": "hand-written lab account (invented names; AWS documentation example account ID)"
+ },
+ "Policies": [
+  {
+   "PolicyName": "AdministratorAccess",
+   "Arn": "arn:aws:iam::aws:policy/AdministratorAccess",
+   "DefaultVersionId": "v1",
+   "PolicyVersionList": [
+    {"VersionId": "v1", "IsDefaultVersion": true, "Document": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": "*", "Resource": "*"}]}}
+   ]
+  },
+  {
+   "PolicyName": "read-everything",
+   "Arn": "arn:aws:iam::123456789012:policy/read-everything",
+   "DefaultVersionId": "v2",
+   "PolicyVersionList": [
+    {"VersionId": "v1", "IsDefaultVersion": false, "Document": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": "*", "Resource": "*"}]}},
+    {"VersionId": "v2", "IsDefaultVersion": true, "Document": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": ["*:Get*", "*:List*", "*:Describe*"], "Resource": "*"}]}}
+   ]
+  },
+  {
+   "PolicyName": "dev-boundary",
+   "Arn": "arn:aws:iam::123456789012:policy/dev-boundary",
+   "DefaultVersionId": "v1",
+   "PolicyVersionList": [
+    {"VersionId": "v1", "IsDefaultVersion": true, "Document": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": ["s3:*", "lambda:*"], "Resource": "*"}]}}
+   ]
+  },
+  {
+   "PolicyName": "iamgraph-readonly",
+   "Arn": "arn:aws:iam::123456789012:policy/iamgraph-readonly",
+   "DefaultVersionId": "v1",
+   "PolicyVersionList": [
+    {"VersionId": "v1", "IsDefaultVersion": true, "Document": {"Version": "2012-10-17", "Statement": [{"Sid": "ReadIamAuthorizationDetails", "Effect": "Allow", "Action": "iam:GetAccountAuthorizationDetails", "Resource": "*"}]}}
+   ]
+  }
+ ],
+ "GroupDetailList": [
+  {
+   "GroupName": "admins",
+   "GroupId": "AGPAEXAMPLE000000001",
+   "Arn": "arn:aws:iam::123456789012:group/admins",
+   "GroupPolicyList": [],
+   "AttachedManagedPolicies": [{"PolicyName": "AdministratorAccess", "PolicyArn": "arn:aws:iam::aws:policy/AdministratorAccess"}]
+  },
+  {
+   "GroupName": "readers",
+   "GroupId": "AGPAEXAMPLE000000002",
+   "Arn": "arn:aws:iam::123456789012:group/readers",
+   "GroupPolicyList": [],
+   "AttachedManagedPolicies": [{"PolicyName": "read-everything", "PolicyArn": "arn:aws:iam::123456789012:policy/read-everything"}]
+  }
+ ],
+ "UserDetailList": [
+  {
+   "UserName": "alice",
+   "UserId": "AIDAEXAMPLE000000001",
+   "Arn": "arn:aws:iam::123456789012:user/alice",
+   "GroupList": ["admins"],
+   "UserPolicyList": [],
+   "AttachedManagedPolicies": []
+  },
+  {
+   "UserName": "bob",
+   "UserId": "AIDAEXAMPLE000000002",
+   "Arn": "arn:aws:iam::123456789012:user/bob",
+   "GroupList": ["readers"],
+   "UserPolicyList": [
+    {
+     "PolicyName": "deploy-functions",
+     "PolicyDocument": "%7B%22Version%22%3A%222012-10-17%22%2C%22Statement%22%3A%5B%7B%22Sid%22%3A%22Deploy%22%2C%22Effect%22%3A%22Allow%22%2C%22Action%22%3A%5B%22lambda%3ACreateFunction%22%2C%22lambda%3AInvokeFunction%22%2C%22iam%3APassRole%22%5D%2C%22Resource%22%3A%22%2A%22%7D%5D%7D"
+    }
+   ],
+   "AttachedManagedPolicies": []
+  },
+  {
+   "UserName": "carol",
+   "UserId": "AIDAEXAMPLE000000003",
+   "Arn": "arn:aws:iam::123456789012:user/carol",
+   "GroupList": [],
+   "UserPolicyList": [
+    {
+     "PolicyName": "iam-with-mfa",
+     "PolicyDocument": {"Version": "2012-10-17", "Statement": [
+      {"Sid": "IamWithMfa", "Effect": "Allow", "Action": "iam:*", "Resource": "*", "Condition": {"Bool": {"aws:MultiFactorAuthPresent": "true"}}},
+      {"Sid": "NeverKeys", "Effect": "Deny", "Action": ["iam:CreateAccessKey", "iam:CreateLoginProfile"], "Resource": "*"}
+     ]}
+    }
+   ],
+   "AttachedManagedPolicies": []
+  },
+  {
+   "UserName": "dave",
+   "UserId": "AIDAEXAMPLE000000004",
+   "Arn": "arn:aws:iam::123456789012:user/dave",
+   "GroupList": ["admins"],
+   "UserPolicyList": [],
+   "AttachedManagedPolicies": [],
+   "PermissionsBoundary": {"PermissionsBoundaryType": "Policy", "PermissionsBoundaryArn": "arn:aws:iam::123456789012:policy/dev-boundary"}
+  },
+  {
+   "UserName": "erin",
+   "UserId": "AIDAEXAMPLE000000005",
+   "Arn": "arn:aws:iam::123456789012:user/erin",
+   "GroupList": [],
+   "UserPolicyList": [
+    {
+     "PolicyName": "own-keys-only",
+     "PolicyDocument": {"Version": "2012-10-17", "Statement": [
+      {"Sid": "OwnKeys", "Effect": "Allow", "Action": ["iam:CreateAccessKey", "iam:ListAccessKeys"], "Resource": "arn:aws:iam::123456789012:user/${aws:username}"}
+     ]}
+    }
+   ],
+   "AttachedManagedPolicies": []
+  },
+  {
+   "UserName": "frank",
+   "UserId": "AIDAEXAMPLE000000006",
+   "Arn": "arn:aws:iam::123456789012:user/frank",
+   "GroupList": ["readers"],
+   "UserPolicyList": [
+    {
+     "PolicyName": "policy-editor",
+     "PolicyDocument": {"Version": "2012-10-17", "Statement": [
+      {"Sid": "EditPolicies", "Effect": "Allow", "Action": ["iam:CreatePolicyVersion", "iam:SetDefaultPolicyVersion"], "Resource": "arn:aws:iam::123456789012:policy/*"}
+     ]}
+    }
+   ],
+   "AttachedManagedPolicies": []
+  },
+  {
+   "UserName": "auditor",
+   "UserId": "AIDAEXAMPLE000000007",
+   "Arn": "arn:aws:iam::123456789012:user/auditor",
+   "GroupList": [],
+   "UserPolicyList": [
+    {
+     "PolicyName": "assume-audit-role",
+     "PolicyDocument": {"Version": "2012-10-17", "Statement": [
+      {"Effect": "Allow", "Action": "sts:AssumeRole", "Resource": "arn:aws:iam::123456789012:role/iamgraph-readonly"}
+     ]}
+    }
+   ],
+   "AttachedManagedPolicies": []
+  }
+ ],
+ "RoleDetailList": [
+  {
+   "RoleName": "lambda-admin",
+   "RoleId": "AROAEXAMPLE000000001",
+   "Arn": "arn:aws:iam::123456789012:role/lambda-admin",
+   "AssumeRolePolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"Service": "lambda.amazonaws.com"}, "Action": "sts:AssumeRole"}]},
+   "RolePolicyList": [],
+   "AttachedManagedPolicies": [{"PolicyName": "AdministratorAccess", "PolicyArn": "arn:aws:iam::aws:policy/AdministratorAccess"}]
+  },
+  {
+   "RoleName": "ci-deploy",
+   "RoleId": "AROAEXAMPLE000000002",
+   "Arn": "arn:aws:iam::123456789012:role/ci-deploy",
+   "AssumeRolePolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"AWS": "arn:aws:iam::123456789012:root"}, "Action": "sts:AssumeRole"}]},
+   "RolePolicyList": [
+    {
+     "PolicyName": "attach-to-app-roles",
+     "PolicyDocument": {"Version": "2012-10-17", "Statement": [
+      {"Sid": "AttachAppRoles", "Effect": "Allow", "Action": "iam:AttachRolePolicy", "Resource": "arn:aws:iam::123456789012:role/app-*", "Condition": {"StringEquals": {"aws:RequestedRegion": "eu-west-1"}}}
+     ]}
+    }
+   ],
+   "AttachedManagedPolicies": []
+  },
+  {
+   "RoleName": "iamgraph-readonly",
+   "RoleId": "AROAEXAMPLE000000003",
+   "Arn": "arn:aws:iam::123456789012:role/iamgraph-readonly",
+   "AssumeRolePolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"AWS": "arn:aws:iam::123456789012:user/auditor"}, "Action": "sts:AssumeRole", "Condition": {"StringEquals": {"sts:ExternalId": "EXAMPLE-NOT-A-SECRET"}, "Bool": {"aws:MultiFactorAuthPresent": "true"}}}]},
+   "RolePolicyList": [],
+   "AttachedManagedPolicies": [{"PolicyName": "iamgraph-readonly", "PolicyArn": "arn:aws:iam::123456789012:policy/iamgraph-readonly"}]
+  }
+ ]
+}
