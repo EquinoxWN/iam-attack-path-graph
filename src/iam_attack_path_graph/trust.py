@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
 from . import wildcard
@@ -19,6 +20,7 @@ class TrustGrant:
     principal: str
     actions: tuple[str, ...]
     conditional: bool
+    excluded: tuple[str, ...] = ()  # NotPrincipal: everyone except these
 
 
 def trusted(role: Principal) -> list[TrustGrant]:
@@ -27,7 +29,7 @@ def trusted(role: Principal) -> list[TrustGrant]:
         return []
     out: list[TrustGrant] = []
     for stmt in role.trust_policy.statements:
-        if stmt.effect != "Allow" or not stmt.principals:
+        if stmt.effect != "Allow" or not (stmt.principals or stmt.not_principals):
             continue
         acts = tuple(
             a
@@ -43,7 +45,12 @@ def trusted(role: Principal) -> list[TrustGrant]:
         )
         if not acts:
             continue
-        for kind, ids in sorted(stmt.principals.items()):
+        if stmt.not_principals:
+            # Allow with NotPrincipal trusts everyone except the listed principals.
+            excluded = tuple(i for _, ids in sorted(stmt.not_principals.items()) for i in ids)
+            out.append(TrustGrant(role.arn, "AWS", "*", acts, bool(stmt.conditions), excluded))
+            continue
+        for kind, ids in sorted((stmt.principals or {}).items()):
             out.extend(
                 TrustGrant(role.arn, kind, ident, acts, bool(stmt.conditions)) for ident in ids
             )
@@ -51,9 +58,12 @@ def trusted(role: Principal) -> list[TrustGrant]:
 
 
 def account_root_trusted(grant: TrustGrant, account_id: str) -> bool:
-    """Whether a grant trusts a whole account (its root ARN, bare ID or `*`)."""
-    return grant.principal_type == "AWS" and grant.principal in (
-        "*",
-        account_id,
-        f"arn:aws:iam::{account_id}:root",
+    """Whether a grant trusts a whole account (its root ARN in any partition, bare ID or `*`)."""
+    if grant.principal_type != "AWS":
+        return False
+    if grant.principal in ("*", account_id):
+        return True
+    return (
+        re.fullmatch(rf"arn:aws[a-z-]*:iam::{re.escape(account_id)}:root", grant.principal)
+        is not None
     )

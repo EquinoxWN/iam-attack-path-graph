@@ -137,9 +137,20 @@ def test_any_action_is_admin_only_with_a_full_wildcard() -> None:
     assert decide(doc(allow()), ANY) is A
     assert decide(doc(allow("*:*")), ANY) is A
     assert decide(doc(allow(["iam:*", "s3:*"])), ANY) is N
-    assert decide(doc({"Effect": "Allow", "NotAction": "iam:*", "Resource": "*"}), ANY) is N
+    assert decide(doc({"Effect": "Allow", "NotAction": "iam:*", "Resource": "*"}), ANY) is C
     assert decide(doc(allow(), deny("s3:DeleteBucket")), ANY) is C
     assert decide(doc(allow(), deny()), ANY) is X
+
+
+def test_not_action_allow_is_a_conditional_admin_with_the_exclusions_named() -> None:
+    near_admin = doc(
+        {"Effect": "Allow", "NotAction": ["iam:*", "organizations:*"], "Resource": "*"}
+    )
+    ev = evaluate(PolicySet((near_admin,)), Request(ANY))
+    assert ev.decision is C
+    assert any(
+        "NotAction allows every action except iam:*, organizations:*" in r for r in ev.reasons
+    )
 
 
 def test_matches_name_the_statements_behind_a_decision() -> None:

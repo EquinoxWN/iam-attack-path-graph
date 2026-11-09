@@ -69,3 +69,33 @@ def test_deny_other_actions_and_users_are_skipped() -> None:
 
 def test_users_have_no_trust_grants() -> None:
     assert trusted(SNAP.find("alice")) == []
+
+
+def test_not_principal_allow_is_reported_as_wildcard_trust() -> None:
+    role = _role(
+        {
+            "Effect": "Allow",
+            "NotPrincipal": {"AWS": ["arn:aws:iam::123456789012:user/blocked"]},
+            "Action": "sts:AssumeRole",
+        }
+    )
+    (grant,) = trusted(role)
+    assert (grant.principal_type, grant.principal) == ("AWS", "*")
+    assert grant.excluded == ("arn:aws:iam::123456789012:user/blocked",)
+    assert account_root_trusted(grant, "123456789012")
+
+
+def test_account_root_is_recognised_in_every_partition() -> None:
+    for arn in (
+        "arn:aws:iam::123456789012:root",
+        "arn:aws-cn:iam::123456789012:root",
+        "arn:aws-us-gov:iam::123456789012:root",
+    ):
+        grant = TrustGrant(
+            "arn:aws:iam::123456789012:role/r", "AWS", arn, ("sts:AssumeRole",), False
+        )
+        assert account_root_trusted(grant, "123456789012"), arn
+    other = TrustGrant("r", "AWS", "arn:aws-cn:iam::999999999999:root", ("sts:AssumeRole",), False)
+    assert not account_root_trusted(other, "123456789012")
+    service = TrustGrant("r", "Service", "123456789012", ("sts:AssumeRole",), False)
+    assert not account_root_trusted(service, "123456789012")

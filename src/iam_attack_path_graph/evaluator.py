@@ -93,9 +93,14 @@ def _covers_all_actions(pattern: str) -> bool:
 def _action_matches(stmt: Statement, action: str) -> tuple[Tri, str | None]:
     """Whether the statement's Action/NotAction covers the action."""
     if action == ANY:
-        # An allow must cover every action; a narrower deny may still remove some of them.
+        # An Action-list allow must cover every action; NotAction allows and narrower denies
+        # may cover all but some, so they make the answer conditional instead of a no.
         if stmt.not_actions is None and any(_covers_all_actions(p) for p in stmt.actions):
             return Tri.TRUE, None
+        if stmt.effect == "Allow" and stmt.not_actions is not None:
+            return Tri.UNKNOWN, "NotAction allows every action except " + ", ".join(
+                stmt.not_actions
+            )
         if stmt.effect == "Allow":
             return Tri.FALSE, None
         return Tri.UNKNOWN, "a deny covers some actions"

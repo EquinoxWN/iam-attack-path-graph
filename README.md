@@ -15,7 +15,7 @@ Lambda combination that M2 will turn into a path to admin:
 
 ![iamgraph perms and check on the lab account](docs/proof/demo.jpg)
 
-186 tests pass; lint, `mypy --strict` and the dependency audit are clean; 51,000 evaluations
+189 tests pass; lint, `mypy --strict` and the dependency audit are clean; 51,000 evaluations
 (1,500 principals) take 0.81 s:
 
 ![check script output and benchmark](docs/proof/tests.jpg)
@@ -91,7 +91,7 @@ collection), `snapshot.py` and `policy.py` (parsing), `evaluator.py`, `condition
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 make setup     # pip install -e ".[dev]"
 make lint      # ruff, ruff format --check, mypy --strict
-make test      # 186 tests
+make test      # 189 tests
 make demo      # iamgraph perms examples/lab-snapshot.json
 make bench     # iamgraph bench --users 1000 --roles 500
 make audit     # pip-audit
@@ -128,19 +128,19 @@ and region come from boto3's usual configuration.
 
 ## Tests and results
 
-186 tests, all passing locally (Windows 11, Python 3.14.5) and in CI (Ubuntu, Python 3.12). Full
+189 tests, all passing locally (Windows 11, Python 3.14.5) and in CI (Ubuntu, Python 3.12). Full
 results: [docs/results/m1.md](docs/results/m1.md). Quality check and mutation table:
-[docs/quality/2026-11-01.md](docs/quality/2026-11-01.md) (10 of 10 hand mutations killed).
+[docs/quality/2026-11-01.md](docs/quality/2026-11-01.md) (13 of 13 hand mutations killed, including the two security-review fixes).
 
 | File | Tests | What it proves |
 |---|---|---|
 | [`test_wildcard.py`](tests/test_wildcard.py) | 20 | `*`/`?` semantics; equal to a regex reference on 5,000 random pairs; no backtracking blow-up |
 | [`test_policy.py`](tests/test_policy.py) | 26 | Accepted shapes, URL-encoded documents, 20 malformed documents rejected with the location, size limits |
 | [`test_conditions.py`](tests/test_conditions.py) | 48 | Every supported operator family, negation, absent versus unknown keys, `IfExists`, set operators, `Null`, variables |
-| [`test_evaluator.py`](tests/test_evaluator.py) | 21 | Deny precedence, `Not*`, boundaries, variables, "every action/resource" queries, 300 randomized policies |
+| [`test_evaluator.py`](tests/test_evaluator.py) | 22 | Deny precedence, `Not*`, boundaries, variables, "every action/resource" queries (a `NotAction` allow makes a conditional admin), 300 randomized policies |
 | [`test_snapshot.py`](tests/test_snapshot.py) | 16 | Parsing the API format, default policy versions, group inheritance, warnings, malformed snapshots |
 | [`test_effective.py`](tests/test_effective.py) | 24 | Expected answers for every lab principal; the read-only role grants no write |
-| [`test_trust.py`](tests/test_trust.py) | 4 | Who each trust policy lets in |
+| [`test_trust.py`](tests/test_trust.py) | 6 | Who each trust policy lets in, including `NotPrincipal` allows (wildcard trust) and account roots in every partition |
 | [`test_collect.py`](tests/test_collect.py) | 16 | Role assumption, timeouts, bounded retries, pagination limits, error chaining, atomic writes (fake boto3) |
 | [`test_cli.py`](tests/test_cli.py) | 11 | Every command, exit code 2 on errors, no write on an invalid collection |
 
