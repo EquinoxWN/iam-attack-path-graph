@@ -8,20 +8,17 @@ A key whose value is unknown makes the result UNKNOWN unless another part is alr
 from __future__ import annotations
 
 import ipaddress
+import operator
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Any
 
 from . import wildcard
 from .context import AbsentError, Context, UnresolvedError, has_variable, substitute
 from .tristate import Tri, all_of
 
 Matcher = Callable[[str, str], bool]
-
-
-def _number(text: str) -> float:
-    """A numeric condition value."""
-    return float(text)
 
 
 def _date(text: str) -> datetime:
@@ -38,7 +35,7 @@ def _ip(value: str, network: str) -> bool:
     return ipaddress.ip_address(value) in ipaddress.ip_network(network, strict=False)
 
 
-def _cmp(parse: Callable[[str], object], op: Callable[[object, object], bool]) -> Matcher:
+def _cmp(parse: Callable[[str], Any], op: Callable[[Any, Any], bool]) -> Matcher:
     """A matcher comparing parsed request and policy values."""
 
     def matcher(request: str, policy: str) -> bool:
@@ -46,31 +43,6 @@ def _cmp(parse: Callable[[str], object], op: Callable[[object, object], bool]) -
         return op(parse(request), parse(policy))
 
     return matcher
-
-
-def _lt(a: object, b: object) -> bool:
-    """a < b for comparable values."""
-    return a < b  # type: ignore[operator,no-any-return]
-
-
-def _le(a: object, b: object) -> bool:
-    """a <= b for comparable values."""
-    return a <= b  # type: ignore[operator,no-any-return]
-
-
-def _gt(a: object, b: object) -> bool:
-    """a > b for comparable values."""
-    return a > b  # type: ignore[operator,no-any-return]
-
-
-def _ge(a: object, b: object) -> bool:
-    """a >= b for comparable values."""
-    return a >= b  # type: ignore[operator,no-any-return]
-
-
-def _eq(a: object, b: object) -> bool:
-    """a == b."""
-    return a == b
 
 
 def _like(request: str, policy: str) -> bool:
@@ -86,18 +58,18 @@ _OPERATORS: Mapping[str, tuple[Matcher, bool, bool]] = {
     "stringnotequalsignorecase": (lambda r, p: r.casefold() == p.casefold(), True, True),
     "stringlike": (_like, False, True),
     "stringnotlike": (_like, True, True),
-    "numericequals": (_cmp(_number, _eq), False, False),
-    "numericnotequals": (_cmp(_number, _eq), True, False),
-    "numericlessthan": (_cmp(_number, _lt), False, False),
-    "numericlessthanequals": (_cmp(_number, _le), False, False),
-    "numericgreaterthan": (_cmp(_number, _gt), False, False),
-    "numericgreaterthanequals": (_cmp(_number, _ge), False, False),
-    "dateequals": (_cmp(_date, _eq), False, False),
-    "datenotequals": (_cmp(_date, _eq), True, False),
-    "datelessthan": (_cmp(_date, _lt), False, False),
-    "datelessthanequals": (_cmp(_date, _le), False, False),
-    "dategreaterthan": (_cmp(_date, _gt), False, False),
-    "dategreaterthanequals": (_cmp(_date, _ge), False, False),
+    "numericequals": (_cmp(float, operator.eq), False, False),
+    "numericnotequals": (_cmp(float, operator.eq), True, False),
+    "numericlessthan": (_cmp(float, operator.lt), False, False),
+    "numericlessthanequals": (_cmp(float, operator.le), False, False),
+    "numericgreaterthan": (_cmp(float, operator.gt), False, False),
+    "numericgreaterthanequals": (_cmp(float, operator.ge), False, False),
+    "dateequals": (_cmp(_date, operator.eq), False, False),
+    "datenotequals": (_cmp(_date, operator.eq), True, False),
+    "datelessthan": (_cmp(_date, operator.lt), False, False),
+    "datelessthanequals": (_cmp(_date, operator.le), False, False),
+    "dategreaterthan": (_cmp(_date, operator.gt), False, False),
+    "dategreaterthanequals": (_cmp(_date, operator.ge), False, False),
     "bool": (lambda r, p: r.lower() == p.lower(), False, False),
     "binaryequals": (lambda r, p: r == p, False, False),
     "ipaddress": (_ip, False, False),
@@ -156,7 +128,7 @@ def _key(op: Operator, key: str, policy_values: tuple[str, ...], ctx: Context) -
     if request is None:
         if ctx.is_unknown(key):
             return Tri.UNKNOWN
-        matcher, negated, _ = _OPERATORS[op.base]
+        negated = _OPERATORS[op.base][1]
         if op.if_exists or op.set_qualifier == "forallvalues":
             return Tri.TRUE
         if op.set_qualifier == "foranyvalue":
